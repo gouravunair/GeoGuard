@@ -81,14 +81,20 @@ export function useSensorData() {
             .on(
                 'postgres_changes',
                 {
-                    event: 'INSERT',
+                    event: '*',
                     schema: 'public',
                     table: 'landslide_readings',
                 },
                 (payload: any) => {
                     const newReading = mapReading(payload.new);
-                    setReading(newReading);
-                    setHistory((prev) => [...prev.slice(-49), newReading]);
+
+                    if (payload.eventType === 'INSERT') {
+                        setReading(newReading);
+                        setHistory((prev) => [...prev.slice(-49), newReading]);
+                    } else if (payload.eventType === 'UPDATE') {
+                        setReading((prev) => (prev && prev.id === newReading.id ? newReading : prev));
+                        setHistory((prev) => prev.map((item) => (item.id === newReading.id ? newReading : item)));
+                    }
                     setIsConnected(true);
                 }
             )
